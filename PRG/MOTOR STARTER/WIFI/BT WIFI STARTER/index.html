@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3-Phase Motor Control Deck</title>
+    <!-- Include CDN links for modern, clean font and MQTT web library -->
+    <link href="https://googleapis.com" rel="stylesheet">
+    <script src="https://cloudflare.com" type="text/javascript"></script>
+    
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --state-stop: #64748b;
+            --state-run: #10b981;
+            --state-fault: #ef4444;
+        }
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .app-container {
+            width: 100%;
+            max-width: 450px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .status-banner {
+            background-color: var(--state-stop);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            transition: background 0.3s;
+        }
+        .grid-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .card-title {
+            color: var(--text-sub);
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .metric-row:last-child { margin-bottom: 0; }
+        .val-display { font-size: 1.4rem; font-weight: bold; }
+        .btn-container { display: flex; gap: 15px; }
+        button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            transition: opacity 0.2s;
+        }
+        button:active { opacity: 0.8; }
+        .btn-start { background-color: var(--state-run); }
+        .btn-stop { background-color: var(--state-fault); }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="header">
+        <h2>MOTORSTARTER PRO</h2>
+        <small style="color: var(--text-sub);">Device: <span id="disp-mac">Connecting...</span></small>
+    </div>
+
+    <!-- Live System State Banner -->
+    <div id="status-banner" class="status-banner">⏹️ SYSTEM DISCONNECTED</div>
+
+    <!-- Phase Voltages Card -->
+    <div class="grid-card">
+        <div class="card-title">⚡ 3-Phase Line Voltages</div>
+        <div class="metric-row"><span>R-Y Phase:</span><span class="val-display" id="v-ry">0 V</span></div>
+        <div class="metric-row"><span>Y-B Phase:</span><span class="val-display" id="v-yb">0 V</span></div>
+        <div class="metric-row"><span>B-R Phase:</span><span class="val-display" id="v-br">0 V</span></div>
+    </div>
+
+    <!-- Phase Currents Card -->
+    <div class="grid-card">
+        <div class="card-title">📈 3-Phase Current Draw</div>
+        <div class="metric-row"><span>R Current:</span><span class="val-display" id="a-r" style="color:#38bdf8">0.0 A</span></div>
+        <div class="metric-row"><span>Y Current:</span><span class="val-display" id="a-y" style="color:#38bdf8">0.0 A</span></div>
+        <div class="metric-row"><span>B Current:</span><span class="val-display" id="a-b" style="color:#38bdf8">0.0 A</span></div>
+    </div>
+
+    <!-- Execution Touch Buttons -->
+    <div class="btn-container">
+        <button class="btn-start" onclick="sendCommand('START')">START</button>
+        <button class="btn-stop" onclick="sendCommand('STOP')">STOP</button>
+    </div>
+</div>
+
+<script>
+    // --- Configuration Details ---
+    const MAC_ADDRESS = "A1B2C3D4E5F6"; // Hardware target MAC ID (Change for each user app copy)
+    const BROKER_HOST = "563dc0aa9ec6d12c0420.s1.eu.hivemq.cloud";
+    const BROKER_PORT = 8884; // WebSocket Secure TLS Port for Web Applications
+    const MQTT_USER = "motor_gateway";
+    const MQTT_PASS = "YourSecurePassword123";
+
+    document.getElementById('disp-mac').innerText = MAC_ADDRESS;
+
+    // Initialize MQTT Client via WebSockets
+    const client = new Paho.MQTT.Client("wss://" + BROKER_HOST + ":" + BROKER_PORT + "/mqtt", "WebApp_" + Math.random().toString(16).substr(2, 8));
+
+    client.onConnectionLost = (response) => {
+        document.getElementById('status-banner').innerText = "⏹️ SYSTEM DISCONNECTED";
+        document.getElementById('status-banner').style.backgroundColor = "#64748b";
+        setTimeout(connectBroker, 5000); // Auto reconnect loop
+    };
+
+    client.onMessageArrived = (message) => {
+        const payload = message.payloadString;
+        const tags = payload.split(',');
+        
+        if (tags.length === 7) {
+            // Update Voltage values inside UI spans
+            document.getElementById('v-ry').innerText = tags[0] + " V";
+            document.getElementById('v-yb').innerText = tags[1] + " V";
+            document.getElementById('v-br').innerText = tags[2] + " V";
+            
+            // Update Amperage values inside UI spans
+            document.getElementById('a-r').innerText = tags[3] + " A";
+            document.getElementById('a-y').innerText = tags[4] + " A";
+            document.getElementById('a-b').innerText = tags[5] + " A";
+
+            // Update Global Status Banner depending on integer code
+            const statusInt = parseInt(tags[6]);
+            const banner = document.getElementById('status-banner');
+            if (statusInt === 1) {
+                banner.innerText = "⚡ MOTOR RUNNING";
+                banner.style.backgroundColor = "#10b981"; // Emerald Green
+            } else if (statusInt === 0) {
+                banner.innerText = "⏹️ MOTOR STOPPED";
+                banner.style.backgroundColor = "#475569"; // Slate Gray
+            } else if (statusInt === 2) {
+                banner.innerText = "🚨 TRIP FAULT TRIGGERED";
+                banner.style.backgroundColor = "#ef4444"; // Safety Red
+            }
+        }
+    };
+
+    function connectBroker() {
+        client.connect({
+            onSuccess: () => {
+                client.subscribe(`devices/MOTOR_${MAC_ADDRESS}/telemetry`);
+                document.getElementById('status-banner').innerText = "⏹️ READY (CONNECTED)";
+                document.getElementById('status-banner').style.backgroundColor = "#475569";
+            },
+            onFailure: () => { setTimeout(connectBroker, 5000); },
+            useSSL: true,
+            userName: MQTT_USER,
+            password: MQTT_PASS,
+            keepAliveInterval: 30
+        });
+    }
+
+    function sendCommand(cmd) {
+        const message = new Paho.MQTT.Message(cmd);
+        message.destinationName = `devices/MOTOR_${MAC_ADDRESS}/control`;
+        message.qos = 1;
+        client.send(message);
+    }
+
+    // Launch connection routine on page load
+    connectBroker();
+</script>
+
+</body>
+</html>

@@ -9,11 +9,11 @@ String SWV = "U23";
 //#include "R1.h"
 //#include "R2.h"
 //#include "R3.h"
-//#include "R4.h"
+#include "R4.h"
 //#include "R5.h"
 //#include "R6_10HP.h"
 //#include "R7_10HP.h"
-#include "R8.h"
+//#include "R8.h"
 //#include "R8_5HP.h"
 //#include "R10_10HP.h"  //4808 Chip
 

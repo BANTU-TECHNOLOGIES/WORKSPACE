@@ -3,7 +3,7 @@ void VOLT_RMS_MEASURE() {
   int SAMPLING = 0;
   int RAW_ADC = 0;
   bool MEASUREMENT = HIGH;
- 
+  // unsigned long PT = millis();
   while (SAMPLING < 1000 && MEASUREMENT == HIGH) {
     RAW_ADC = analogRead(AMPLITUDE_PIN[SCAN]);
       if (RAW_ADC >= 500 && RAW_ADC <= 520) {
@@ -14,9 +14,10 @@ void VOLT_RMS_MEASURE() {
           MEASUREMENT = LOW;
         }
       }
-    }
-     SAMPLING++;
+
+    } SAMPLING++;
   }
+ //  ET = millis() - PT ;
   double RMS_SUM = 0;
   for (int i = 0; i < N_SAMPLES; i++) {
     RMS_SUM += (double)RMS_DATA[i] * RMS_DATA[i];
@@ -28,12 +29,11 @@ void VOLT_RMS_MEASURE() {
 }
 
 
-/*
-void VOLT_RMS_MEASURE() {
-double RMS_DATA[MAX_SAMPLES];
+
+/*void VOLT_RMS_MEASURE() {
+
   RMS_DATA[N_SAMPLES] = 0;
   bool volt_measurement = HIGH;
-  unsigned long PT = millis();
   while (SCAN == 1 && volt_measurement == HIGH) {
     RMS_DATA[N_SAMPLES] = GAIN[1] * (analogRead(AMPLITUDE_PIN[1]) - analogRead(AMPLITUDE_PIN[3]));
     N_SAMPLES++;
@@ -55,7 +55,6 @@ double RMS_DATA[MAX_SAMPLES];
       volt_measurement = LOW;
     }
   }
-     ET = millis() - PT ;
   double RMS_OUTPUT = 0;
   for (int i = 0; i < N_SAMPLES; i++) {
     RMS_OUTPUT += RMS_DATA[i] * RMS_DATA[i];
@@ -75,4 +74,5 @@ double RMS_DATA[MAX_SAMPLES];
     else RMS[5];
   }
   N_SAMPLES = 0;
+
 }*/
