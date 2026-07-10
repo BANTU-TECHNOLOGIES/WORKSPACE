@@ -29,11 +29,15 @@
             flex-direction: column;
             align-items: center;
         }
-        .app-container { width: 100%; max-width: 480px; display: none; }
+        /* Critical patch: Force container element execution rules */
+        .app-container { width: 100%; max-width: 480px; display: none !important; }
+        .login-card { background-color: var(--card-bg); border-radius: 16px; padding: 30px; margin-top: 50px; width: 100%; max-width: 380px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); text-align: center; display: none !important; }
+        
+        /* Master panel visibility state controller */
         .active-view { display: block !important; }
+        
         .header { text-align: center; margin-bottom: 20px; position: relative; }
         .back-btn { position: absolute; left: 0; top: 5px; background: none; border: none; color: var(--accent); font-weight: bold; cursor: pointer; font-family: inherit; font-size: 1rem; }
-        .login-card { background-color: var(--card-bg); border-radius: 16px; padding: 30px; margin-top: 50px; width: 100%; max-width: 380px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); text-align: center; }
         .input-group { text-align: left; margin-bottom: 15px; }
         .input-group label { display: block; color: var(--text-sub); font-size: 0.85rem; margin-bottom: 5px; }
         input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--text-sub); background-color: var(--input-bg); color: white; font-family: inherit; box-sizing: border-box; }
@@ -41,8 +45,6 @@
         .fleet-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 15px; }
         .starter-card { background-color: var(--card-bg); border-radius: 12px; padding: 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; border-left: 6px solid #cbd5e1; transition: transform 0.1s; }
         .starter-card:active { transform: scale(0.98); }
-        .starter-card.status-run { border-left-color: var(--state-run); }
-        .starter-card.status-trip { border-left-color: var(--state-fault); }
         .status-dot { width: 12px; height: 12px; border-radius: 50%; background-color: #64748b; }
         .status-dot.run { background-color: var(--state-run); box-shadow: 0 0 8px var(--state-run); }
         .status-dot.stop { background-color: #cbd5e1; box-shadow: 0 0 8px #cbd5e1; }
@@ -53,7 +55,7 @@
         .panel-view { display: none; }
         .panel-view.active { display: block; }
         .status-banner { padding: 15px; border-radius: 12px; text-align: center; font-size: 1.2rem; font-weight: bold; margin-bottom: 20px; color: #000; background-color: #cbd5e1; }
-        .grid-card { background-color: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 20px; position: relative; }
+        .grid-card { background-color: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
         .card-title { color: var(--text-sub); font-size: 0.85rem; margin-bottom: 15px; text-transform: uppercase; }
         .metric-row { display: flex; justify-content: space-between; margin-bottom: 12px; }
         .val-display { font-size: 1.4rem; font-weight: bold; }
@@ -72,47 +74,46 @@
     </style>
 </head>
 <body>
-<!-- 1. LOGIN VIEW SCREEN (Make sure active-view is present) -->
-<div id="view-login" class="login-card active-view">
-    <h2 style="color: var(--accent); margin-bottom: 5px;">BANTU TECH</h2>
-    <p style="color: var(--text-sub); font-size: 0.9rem; margin-top: 0; margin-bottom: 25px;">MotorStarter Control Console</p>
-    <div class="input-group">
-        <label>Customer Username</label>
-        <input type="text" id="login-user" placeholder="Enter username" value="admin">
+    <!-- 1. LOGIN VIEW SCREEN -->
+    <div id="view-login" class="login-card active-view">
+        <h2 style="color: var(--accent); margin-bottom: 5px;">BANTU TECH</h2>
+        <p style="color: var(--text-sub); font-size: 0.9rem; margin-top: 0; margin-bottom: 25px;">MotorStarter Control Console</p>
+        <div class="input-group">
+            <label>Customer Username</label>
+            <input type="text" id="login-user" placeholder="Enter username" value="admin">
+        </div>
+        <div class="input-group">
+            <label>Password</label>
+            <input type="password" id="login-pass" placeholder="Enter password" value="1234">
+        </div>
+        <button class="btn-prime" onclick="handleLogin()">SECURE LOGIN</button>
     </div>
-    <div class="input-group">
-        <label>Password</label>
-        <input type="password" id="login-pass" placeholder="Enter password" value="1234">
-    </div>
-    <button class="btn-prime" onclick="handleLogin()">SECURE LOGIN</button>
-</div>
 
-<!-- 2. OVERALL FLEET MONITOR SCREEN (Make sure class is app-container ONLY) -->
-<div id="view-fleet" class="app-container">
-    <div class="header">
-        <h2>STARTERS MANAGEMENT</h2>
-        <p style="color: var(--text-sub); font-size: 0.85rem; margin: 0;">Operational Overview Fleet Control</p>
-    </div>
-    <div class="grid-card" style="padding: 15px; margin-bottom: 15px;">
-        <div class="card-title" style="margin-bottom: 10px;">Add New ➕ Production Starter</div>
-        <div style="display: flex; gap: 10px;">
-            <input type="text" id="new-mac" placeholder="Enter ESP32 MAC ID (e.g. A1B2C3D4E5F6)">
-            <button class="btn-prime" style="margin-top:0; width:auto; padding: 0 20px;" onclick="addStarter()">ADD</button>
+    <!-- 2. OVERALL FLEET MONITOR SCREEN -->
+    <div id="view-fleet" class="app-container">
+        <div class="header">
+            <h2>STARTERS MANAGEMENT</h2>
+            <p style="color: var(--text-sub); font-size: 0.85rem; margin: 0;">Operational Overview Fleet Control</p>
+        </div>
+        <div class="grid-card" style="padding: 15px; margin-bottom: 15px;">
+            <div class="card-title" style="margin-bottom: 10px;">Add New ➕ Production Starter</div>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="new-mac" placeholder="Enter ESP32 MAC ID (e.g. A1B2C3D4E5F6)">
+                <button class="btn-prime" style="margin-top:0; width:auto; padding: 0 20px;" onclick="addStarter()">ADD</button>
+            </div>
+        </div>
+        <div class="fleet-grid" id="fleet-container">
+            <!-- Dynamically populated fleet nodes -->
         </div>
     </div>
-    <div class="fleet-grid" id="fleet-container">
-        <!-- Dynamically populated fleet nodes -->
-    </div>
-</div>
 
-<!-- 3. PARTICULAR STARTER OVERVIEW SCREEN (Make sure class is app-container ONLY) -->
-<div id="view-details" class="app-container">
-    <div class="header">
-        <button class="back-btn" onclick="showFleetView()">⬅ BACK</button>
-        <h2 id="details-title" style="margin-top: 30px; margin-bottom: 0;">STARTER PANEL</h2>
-        <small style="color: var(--text-sub);">MAC Address Link: <span id="details-mac">---</span></small>
-    </div>
-</div>
+    <!-- 3. PARTICULAR STARTER OVERVIEW SCREEN -->
+    <div id="view-details" class="app-container">
+        <div class="header">
+            <button class="back-btn" onclick="showFleetView()">⬅ BACK</button>
+            <h2 id="details-title" style="margin-top: 30px; margin-bottom: 0;">STARTER PANEL</h2>
+            <small style="color: var(--text-sub);">MAC Address Link: <span id="details-mac">---</span></small>
+        </div>
         <div class="tab-bar">
             <button id="btn-tab-dash" class="tab-btn active" onclick="switchSubPanel('dashboard')">Parameter Live View 📊</button>
             <button id="btn-tab-sch" class="tab-btn" onclick="switchSubPanel('scheduler')">Local Scheduler 🗓</button>
@@ -144,258 +145,267 @@
             <div class="grid-card">
                 <div class="card-title">ATmega3208 EEPROM Core ⏰ Timers</div>
                 <div class="sch-list" id="scheduler-rows-container">
-                    <!-- Dynamically built via buildSchedulerTemplateRows -->
+                    <!-- Dynamically built via JavaScript -->
                 </div>
             </div>
         </div>
     </div>
-
 <script>
+    // --- Global Infrastructure Architecture Definitions ---
+    var BROKER_HOST = "03ba563dc0aa44ba9ec6d12c0a4c6420.s1.eu.hivemq.cloud";
+    var BROKER_PORT = 8884;
+    var MQTT_USER = "bantutechnolgies";
+    var MQTT_PASS = "H!veMQ100";
 
-// --- Global Infrastructure Architecture Definitions ---
-// Note: Web browsers must strictly connect over Secure WebSockets (wss://) via Port 8884
-const BROKER_HOST = "03ba563dc0aa44ba9ec6d12c0a4c6420.s1.eu.hivemq.cloud";
-const BROKER_PORT = 8884;
-const MQTT_USER = "bantutechnologies";
-const MQTT_PASS = "H!veMQ100";
+    var fleetStarters = [{ mac: "A1B2C3D4E5F6", status: 0, ry:0, yb:0, br:0, rA:0.0, yA:0.0, bA:0.0 }];
+    var selectedMac = "";
 
-// Fleet Global State Data Matrix
-let fleetStarters = [{ mac: "A1B2C3D4E5F6", status: 0, ry:0, yb:0, br:0, rA:0.0, yA:0.0, bA:0.0 }];
-let selectedMac = "";
+    // Paho Engine initialization using classic random client string signature properties
+    var client = new Paho.MQTT.Client(
+        "wss://" + BROKER_HOST + ":" + BROKER_PORT + "/mqtt", 
+        "FleetClient_" + Math.random().toString(16).substr(2, 6)
+    );
 
-// Connect global Paho browser network script handler
-const client = new Paho.MQTT.Client("wss://" + BROKER_HOST + ":" + BROKER_PORT + "/mqtt", "FleetClient_" + Math.random().toString(16).substr(2, 6));
+    client.onConnectionLost = function() { 
+        console.log("Broker Link severed. Reconnecting..."); 
+        setTimeout(initializeMqttConnection, 4000); 
+    };
 
-client.onConnectionLost = () => { 
-    console.log("Broker Link severed. Reconnecting..."); 
-    setTimeout(initializeMqttConnection, 4000); 
-};
-
-client.onMessageArrived = (message) => {
-    const topic = message.destinationName;
-    const payload = message.payloadString;
-    const parts = topic.split('/');
-    const targetMac = parts[1].replace("MOTOR_", "");
-    const tags = payload.split(',');
-    
-    if (tags.length === 7) {
-        let starter = fleetStarters.find(s => s.mac === targetMac);
-        if (starter) {
-            starter.ry = parseInt(tags[0]);
-            starter.yb = parseInt(tags[1]);
-            starter.br = parseInt(tags[2]);
-            starter.rA = parseFloat(tags[3]);
-            starter.yA = parseFloat(tags[4]);
-            starter.bA = parseFloat(tags[5]);
-            starter.status = parseInt(tags[6]); // 0=Stop(White), 1=Run(Green), 2=Trip(Red)
-            
-            updateFleetUINodes();
-            if (selectedMac === targetMac) { 
-                updateParticularPanelUI(starter); 
+    client.onMessageArrived = function(message) {
+        var topic = message.destinationName;
+        var payload = message.payloadString;
+        var parts = topic.split('/');
+        var targetMac = parts[1].replace("MOTOR_", "");
+        var tags = payload.split(',');
+        
+        if (tags.length === 7) {
+            let starter = fleetStarters.find(function(s) { return s.mac === targetMac; });
+            if (starter) {
+                starter.ry = parseInt(tags[0]);
+                starter.yb = parseInt(tags[1]);
+                starter.br = parseInt(tags[2]);
+                starter.rA = parseFloat(tags[3]);
+                starter.yA = parseFloat(tags[4]);
+                starter.bA = parseFloat(tags[5]);
+                starter.status = parseInt(tags[6]);
+                
+                updateFleetUINodes();
+                if (selectedMac === targetMac) { 
+                    updateParticularPanelUI(starter); 
+                }
             }
         }
-    }
-};
+    };
 
-function initializeMqttConnection() {
-    client.connect({
-        onSuccess: () => {
-            fleetStarters.forEach(s => { 
-                client.subscribe(`devices/MOTOR_${s.mac}/telemetry`); 
-            });
-            console.log("Secure WebSocket broker connections linked safely.");
-        },
-        onFailure: () => { 
-            setTimeout(initializeMqttConnection, 5000); 
+    function initializeMqttConnection() {
+        client.connect({
+            onSuccess: function() {
+                fleetStarters.forEach(function(s) { 
+                    client.subscribe("devices/MOTOR_" + s.mac + "/telemetry"); 
+                });
+                console.log("Secure WebSocket broker connections linked safely.");
             },
-        useSSL: true, 
-        userName: MQTT_USER, 
-        password: MQTT_PASS, 
-        keepAliveInterval: 30
-    });
-}
-
-// --- View Navigation Controllers ---
-function handleLogin() {
-    const u = document.getElementById('login-user').value;
-    const p = document.getElementById('login-pass').value;
-    if (u === "admin" && p === "1234") {
-        document.getElementById('view-login').classList.remove('active-view');
-        document.getElementById('view-fleet').classList.add('active-view');
-        buildSchedulerTemplateRows();
-        updateFleetUINodes();
-        initializeMqttConnection();
-    } else { 
-        alert("Invalid administrative authentication keys."); 
+            onFailure: function() { 
+                setTimeout(initializeMqttConnection, 5000); 
+            },
+            useSSL: true, 
+            userName: MQTT_USER, 
+            password: MQTT_PASS, 
+            keepAliveInterval: 30
+        });
     }
-}
 
-function switchSubPanel(panelId) {
-    document.getElementById('btn-tab-dash').classList.remove('active');
-    document.getElementById('btn-tab-sch').classList.remove('active');
-    document.getElementById('sub-dashboard').classList.remove('active');
-    document.getElementById('sub-scheduler').classList.remove('active');
-    
-    if (panelId === 'dashboard') {
-        document.getElementById('btn-tab-dash').classList.add('active');
-        document.getElementById('sub-dashboard').classList.add('active');
-    } else {
-        document.getElementById('btn-tab-sch').classList.add('active');
-        document.getElementById('sub-scheduler').classList.add('active');
+    // --- View Navigation Controllers ---
+    function handleLogin() {
+        var u = document.getElementById('login-user').value;
+        var p = document.getElementById('login-pass').value;
+        if (u === "admin" && p === "1234") {
+            document.getElementById('view-login').classList.remove('active-view');
+            document.getElementById('view-fleet').classList.add('active-view');
+            buildSchedulerTemplateRows();
+            updateFleetUINodes();
+            initializeMqttConnection();
+        } else { 
+            alert("Invalid administrative authentication keys."); 
+        }
     }
-}
 
-function showFleetView() {
-    selectedMac = "";
-    document.getElementById('view-details').classList.remove('active-view');
-    document.getElementById('view-fleet').classList.add('active-view');
-    updateFleetUINodes();
-}
-
-function openStarterDetails(mac) {
-    selectedMac = mac;
-    let starter = fleetStarters.find(s => s.mac === mac);
-    document.getElementById('details-title').innerText = "STARTER PANEL";
-    document.getElementById('details-mac').innerText = mac;
-    switchSubPanel('dashboard');
-    if (starter) { 
-        updateParticularPanelUI(starter); 
-    }
-    document.getElementById('view-fleet').classList.remove('active-view');
-    document.getElementById('view-details').classList.add('active-view');
-}
-
-    // --- Dynamic User Interface Rendering Functions ---
-function updateFleetUINodes() {
-    const container = document.getElementById('fleet-container');
-    container.innerHTML = "";
-    fleetStarters.forEach((s, idx) => {
-        let borderStyle = "6px solid #cbd5e1"; // Default Stop (White)
-        let dotClass = "stop";
-        let stateLabel = "MOTOR STOPPED";
+    function switchSubPanel(panelId) {
+        document.getElementById('btn-tab-dash').classList.remove('active');
+        document.getElementById('btn-tab-sch').classList.remove('active');
+        document.getElementById('sub-dashboard').classList.remove('active');
+        document.getElementById('sub-scheduler').classList.remove('active');
         
+        if (panelId === 'dashboard') {
+            document.getElementById('btn-tab-dash').classList.add('active');
+            document.getElementById('sub-dashboard').classList.add('active');
+        } else {
+            document.getElementById('btn-tab-sch').classList.add('active');
+            document.getElementById('sub-scheduler').classList.add('active');
+        }
+    }
+
+    function showFleetView() {
+        selectedMac = "";
+        document.getElementById('view-details').classList.remove('active-view');
+        document.getElementById('view-fleet').classList.add('active-view');
+        updateFleetUINodes();
+    }
+
+    function openStarterDetails(mac) {
+        selectedMac = mac;
+        var starter = fleetStarters.find(function(s) { return s.mac === mac; });
+        document.getElementById('details-title').innerText = "STARTER PANEL";
+        document.getElementById('details-mac').innerText = mac;
+        switchSubPanel('dashboard');
+        if (starter) { 
+            updateParticularPanelUI(starter); 
+        }
+        document.getElementById('view-fleet').classList.remove('active-view');
+        document.getElementById('view-details').classList.add('active-view');
+    }
+    // --- Dynamic User Interface Rendering Functions ---
+    function updateFleetUINodes() {
+        var container = document.getElementById('fleet-container');
+        container.innerHTML = "";
+        fleetStarters.forEach(function(s, idx) {
+            var borderStyle = "6px solid #cbd5e1"; 
+            var dotClass = "stop";
+            var stateLabel = "MOTOR STOPPED";
+            
+            if (s.status === 1) { 
+                borderStyle = "6px solid var(--state-run)"; 
+                dotClass = "run"; 
+                stateLabel = "MOTOR ACTIVE"; 
+            } else if (s.status === 2) { 
+                borderStyle = "6px solid var(--state-fault)"; 
+                dotClass = "trip"; 
+                stateLabel = "TRIP FAULT"; 
+            }
+            
+            var cardElement = document.createElement('div');
+            cardElement.className = "starter-card";
+            cardElement.style.borderLeft = borderStyle;
+            cardElement.onclick = function() { openStarterDetails(s.mac); };
+            
+            var nodeNum = String(idx + 1).padStart(2, '0');
+            var cardContent = "";
+            cardContent += '<div>';
+            cardContent += '  <strong style="color:var(--text-main)">Starter Node #' + nodeNum + '</strong>';
+            cardContent += '  <div style="font-size:0.75rem; color:var(--text-sub); margin-top:4px;">ID: ' + s.mac + '</div>';
+            cardContent += '</div>';
+            cardContent += '<div style="display:flex; align-items:center; gap:10px;">';
+            cardContent += '  <span style="font-size:0.8rem; font-weight:bold; color:var(--text-sub);">' + stateLabel + '</span>';
+            cardContent += '  <div class="status-dot ' + dotClass + '"></div>';
+            cardContent += '</div>';
+            
+            cardElement.innerHTML = cardContent;
+            container.appendChild(cardElement);
+        });
+    }
+
+    function updateParticularPanelUI(s) {
+        document.getElementById('v-ry').innerText = s.ry + " V";
+        document.getElementById('v-yb').innerText = s.yb + " V";
+        document.getElementById('v-br').innerText = s.br + " V";
+        document.getElementById('a-r').innerText = s.rA.toFixed(1) + " A";
+        document.getElementById('a-y').innerText = s.yA.toFixed(1) + " A";
+        document.getElementById('a-b').innerText = s.bA.toFixed(1) + " A";
+        
+        var banner = document.getElementById('status-banner');
         if (s.status === 1) { 
-            borderStyle = "6px solid var(--state-run)"; 
-            dotClass = "run"; 
-            stateLabel = "MOTOR ACTIVE"; 
+            banner.innerText = "⚡ MOTOR RUNNING"; 
+            banner.style.backgroundColor = "var(--state-run)"; 
         } else if (s.status === 2) { 
-            borderStyle = "6px solid var(--state-fault)"; 
-            dotClass = "trip"; 
-            stateLabel = "TRIP FAULT"; 
+            banner.innerText = "🚨 TRIP FAULT ENCOUNTERED"; 
+            banner.style.backgroundColor = "var(--state-fault)"; 
+        } else { 
+            banner.innerText = "⏹ MOTOR STOPPED"; 
+            banner.style.backgroundColor = "#cbd5e1"; 
+        }
+    }
+
+    function addStarter() {
+        var input = document.getElementById('new-mac');
+        var macStr = input.value.trim().toUpperCase();
+        if (macStr.length < 6) { 
+            alert("Please input a valid hardware signature address."); 
+            return; 
+        }
+        var exists = fleetStarters.some(function(s) { return s.mac === macStr; });
+        if (exists) { 
+            alert("This device node is already registered."); 
+            return; 
         }
         
-        let cardElement = document.createElement('div');
-        cardElement.className = "starter-card";
-        cardElement.style.borderLeft = borderStyle;
-        cardElement.onclick = () => openStarterDetails(s.mac);
-        cardElement.innerHTML = `
-            <div> 
-                <strong style="color:var(--text-main)">Starter Node #${String(idx+1).padStart(2,'0')}</strong> 
-                <div style="font-size:0.75rem; color:var(--text-sub); margin-top:4px;">ID: ${s.mac}</div> 
-            </div> 
-            <div style="display:flex; align-items:center; gap:10px;"> 
-                <span style="font-size:0.8rem; font-weight:bold; color:var(--text-sub);">${stateLabel}</span> 
-                <div class="status-dot ${dotClass}"></div> 
-            </div>`;
-        container.appendChild(cardElement);
-    });
-}
-
-function updateParticularPanelUI(s) {
-    document.getElementById('v-ry').innerText = s.ry + " V";
-    document.getElementById('v-yb').innerText = s.yb + " V";
-    document.getElementById('v-br').innerText = s.br + " V";
-    document.getElementById('a-r').innerText = s.rA.toFixed(1) + " A";
-    document.getElementById('a-y').innerText = s.yA.toFixed(1) + " A";
-    document.getElementById('a-b').innerText = s.bA.toFixed(1) + " A";
-    
-    const banner = document.getElementById('status-banner');
-    if (s.status === 1) { 
-        banner.innerText = "⚡ MOTOR RUNNING"; 
-        banner.style.backgroundColor = "var(--state-run)"; 
-    } else if (s.status === 2) { 
-        banner.innerText = "🚨 TRIP FAULT ENCOUNTERED"; 
-        banner.style.backgroundColor = "var(--state-fault)"; 
-    } else { 
-        banner.innerText = "⏹ MOTOR STOPPED"; 
-        banner.style.backgroundColor = "#cbd5e1"; 
+        fleetStarters.push({ mac: macStr, status: 0, ry:0, yb:0, br:0, rA:0.0, yA:0.0, bA:0.0 });
+        if (client.isConnected && client.isConnected()) { 
+            client.subscribe("devices/MOTOR_" + macStr + "/telemetry"); 
+        }
+        input.value = "";
+        updateFleetUINodes();
     }
-}
 
-function addStarter() {
-    const input = document.getElementById('new-mac');
-    let macStr = input.value.trim().toUpperCase();
-    if (macStr.length < 6) { 
-        alert("Please input a valid hardware signature address."); 
-        return; 
+    function buildSchedulerTemplateRows() {
+        var container = document.getElementById('scheduler-rows-container');
+        container.innerHTML = "";
+        for (var i = 0; i < 20; i++) {
+            var slotNum = String(i + 1).padStart(2, '0');
+            var htmlStr = "";
+            htmlStr += '<div class="sch-row">';
+            htmlStr += '  <div>';
+            htmlStr += '    <span style="font-size:0.85rem; font-weight:bold;">Slot #' + slotNum + '</span>';
+            htmlStr += '    <div class="time-inputs">';
+            htmlStr += '      <label style="font-size:0.75rem; color:var(--text-sub)">ON:</label>';
+            htmlStr += '      <input type="time" id="on-' + i + '">';
+            htmlStr += '      <label style="font-size:0.75rem; color:var(--text-sub)">OFF:</label>';
+            htmlStr += '      <input type="time" id="off-' + i + '">';
+            htmlStr += '    </div>';
+            htmlStr += '  </div>';
+            htmlStr += '  <div class="sch-actions">';
+            htmlStr += '    <button class="sch-btn btn-save" onclick="commitTimerConfig(' + i + ')">SAVE</button>';
+            htmlStr += '    <button class="sch-btn btn-del" onclick="wipeTimerConfig(' + i + ')">WIPE</button>';
+            htmlStr += '  </div>';
+            htmlStr += '</div>';
+            container.innerHTML += htmlStr;
+        }
     }
-    if (fleetStarters.some(s => s.mac === macStr)) { 
-        alert("This device node is already registered."); 
-        return; 
-    }
-    
-    fleetStarters.push({ mac: macStr, status: 0, ry:0, yb:0, br:0, rA:0.0, yA:0.0, bA:0.0 });
-    if (client.isConnected && client.isConnected()) { 
-        client.subscribe(`devices/MOTOR_${macStr}/telemetry`); 
-    }
-    input.value = "";
-    updateFleetUINodes();
-}
 
-function buildSchedulerTemplateRows() {
-    const container = document.getElementById('scheduler-rows-container');
-    container.innerHTML = "";
-    for (let i = 0; i < 20; i++) {
-        container.innerHTML += `
-            <div class="sch-row">
-                <div>
-                    <span style="font-size:0.85rem; font-weight:bold;">Slot #${String(i+1).padStart(2,'0')}</span>
-                    <div class="time-inputs">
-                        <label style="font-size:0.75rem; color:var(--text-sub)">ON:</label>
-                        <input type="time" id="on-${i}">
-                        <label style="font-size:0.75rem; color:var(--text-sub)">OFF:</label>
-                        <input type="time" id="off-${i}">
-                    </div>
-                </div>
-                <div class="sch-actions">
-                    <button class="sch-btn btn-save" onclick="commitTimerConfig(${i})">SAVE</button>
-                    <button class="sch-btn btn-del" onclick="wipeTimerConfig(${i})">WIPE</button>
-                </div>
-            </div>`;
+    function sendHardwareCommand(cmd) {
+        if (!selectedMac) return;
+        var msg = new Paho.MQTT.Message(cmd);
+        msg.destinationName = "devices/MOTOR_" + selectedMac + "/control";
+        msg.qos = 1;
+        client.send(msg);
+        console.log("Dispatched path payload: " + msg.destinationName);
     }
-}
 
-// --- Remote Global Cloud Publisher Triggers ---
-function sendHardwareCommand(cmd) {
-    if (!selectedMac) return;
-    const msg = new Paho.MQTT.Message(cmd);
-    msg.destinationName = `devices/MOTOR_${selectedMac}/control`;
-    msg.qos = 1;
-    client.send(msg);
-    console.log(`Dispatched framework token [${cmd}] down path: ${msg.destinationName}`);
-}
-
-function commitTimerConfig(slotIdx) {
-    const onTime = document.getElementById(`on-${slotIdx}`).value;
-    const offTime = document.getElementById(`off-${slotIdx}`).value;
-    if (!onTime || !offTime) { 
-        alert("Please define parameters for both fields."); 
-        return; 
+    function commitTimerConfig(slotIdx) {
+        var onTime = document.getElementById('on-' + slotIdx).value;
+        var offTime = document.getElementById('off-' + slotIdx).value;
+        if (!onTime || !offTime) { 
+            alert("Please define parameters for both fields."); 
+            return; 
+        }
+        var onParts = onTime.split(':');
+        var offParts = offTime.split(':');
+        
+        var payload = "SCH," + slotIdx + "," + 
+                      parseInt(onParts[0]) + "," + 
+                      parseInt(onParts[1]) + "," + 
+                      parseInt(offParts[0]) + "," + 
+                      parseInt(offParts[1]);
+                      
+        sendHardwareCommand(payload);
+        alert("Schedule Matrix Slot #" + (slotIdx + 1) + " synchronized successfully!");
     }
-    const onParts = onTime.split(':');
-    const offParts = offTime.split(':');
-    const payload = `SCH,${slotIdx},${parseInt(onParts[0])},${parseInt(onParts[1])},${parseInt(offParts[0])},${parseInt(offParts[1])}`;
-    sendHardwareCommand(payload);
-    alert(`Schedule Matrix Slot #${slotIdx+1} synchronized successfully!`);
-}
 
-function wipeTimerConfig(slotIdx) {
-    document.getElementById(`on-${slotIdx}`).value = "";
-    document.getElementById(`off-${slotIdx}`).value = "";
-    const payload = `SCH,${slotIdx},99,99,99,99`;
-    sendHardwareCommand(payload);
-}
+    function wipeTimerConfig(slotIdx) {
+        document.getElementById('on-' + slotIdx).value = "";
+        document.getElementById('off-' + slotIdx).value = "";
+        var payload = "SCH," + slotIdx + ",99,99,99,99";
+        sendHardwareCommand(payload);
+    }
 </script>
-
 </body>
 </html>
