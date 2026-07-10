@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3-Phase Motor Control Deck</title>
+    <title>MotorStarter Pro Fleet Manager</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <script src="https://cloudflare.com" type="text/javascript"></script>
-    
     <style>
         :root {
             --bg-color: #0f172a;
             --card-bg: #1e293b;
             --text-main: #f8fafc;
             --text-sub: #94a3b8;
-            --state-stop: #475569;
+            --state-stop: #ffffff;
             --state-run: #10b981;
             --state-fault: #ef4444;
             --accent: #38bdf8;
+            --input-bg: #0b0f19;
         }
         body {
             font-family: 'JetBrains Mono', monospace;
@@ -28,214 +28,126 @@
             flex-direction: column;
             align-items: center;
         }
-        .app-container { width: 100%; max-width: 450px; }
-        .header { text-align: center; margin-bottom: 20px; }
-        .tab-bar {
-            display: flex;
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            padding: 5px;
-            margin-bottom: 20px;
-        }
-        .tab-btn {
-            flex: 1;
-            background: none;
-            border: none;
-            color: var(--text-sub);
-            padding: 10px;
-            font-size: 0.9rem;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 8px;
-        }
+        .app-container { width: 100%; max-width: 480px; display: none; }
+        .active-view { display: block !important; }
+        .header { text-align: center; margin-bottom: 20px; position: relative; }
+        .back-btn { position: absolute; left: 0; top: 5px; background: none; border: none; color: var(--accent); font-weight: bold; cursor: pointer; font-family: inherit; font-size: 1rem; }
+        
+        /* Login Panel Styles */
+        .login-card { background-color: var(--card-bg); border-radius: 16px; padding: 30px; margin-top: 50px; width: 100%; max-width: 380px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); text-align: center; }
+        .input-group { text-align: left; margin-bottom: 15px; }
+        .input-group label { display: block; color: var(--text-sub); font-size: 0.85rem; margin-bottom: 5px; }
+        input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--text-sub); background-color: var(--input-bg); color: white; font-family: inherit; box-sizing: border-box; }
+        .btn-prime { width: 100%; padding: 14px; background-color: var(--accent); border: none; border-radius: 8px; font-weight: bold; color: var(--bg-color); font-size: 1rem; cursor: pointer; margin-top: 10px; }
+        
+        /* Fleet Monitor Styles */
+        .fleet-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 15px; }
+        .starter-card { background-color: var(--card-bg); border-radius: 12px; padding: 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; border-left: 6px solid var(--state-stop); transition: transform 0.1s; }
+        .starter-card:active { transform: scale(0.98); }
+        .starter-card.status-run { border-left-color: var(--state-run); }
+        .starter-card.status-trip { border-left-color: var(--state-fault); }
+        .status-dot { width: 12px; height: 12px; border-radius: 50%; background-color: #64748b; }
+        .status-dot.run { background-color: var(--state-run); box-shadow: 0 0 8px var(--state-run); }
+        .status-dot.stop { background-color: #cbd5e1; box-shadow: 0 0 8px #cbd5e1; }
+        .status-dot.trip { background-color: var(--state-fault); box-shadow: 0 0 8px var(--state-fault); }
+        
+        /* Dashboard View Styles */
+        .tab-bar { display: flex; background-color: var(--card-bg); border-radius: 12px; padding: 5px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; background: none; border: none; color: var(--text-sub); padding: 12px; font-size: 0.9rem; font-weight: bold; cursor: pointer; border-radius: 8px; font-family: inherit; }
         .tab-btn.active { background-color: var(--bg-color); color: var(--accent); }
-        .view-panel { display: none; }
-        .view-panel.active { display: block; }
-        .status-banner {
-            background-color: var(--state-stop);
-            padding: 15px;
-            border-radius: 12px;
-            text-align: center;
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-        .grid-card {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
+        .panel-view { display: none; }
+        .panel-view.active { display: block; }
+        .status-banner { padding: 15px; border-radius: 12px; text-align: center; font-size: 1.2rem; font-weight: bold; margin-bottom: 20px; color: #000; background-color: #cbd5e1; }
+        .grid-card { background-color: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
         .card-title { color: var(--text-sub); font-size: 0.85rem; margin-bottom: 15px; text-transform: uppercase; }
-        .metric-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .metric-row { display: flex; justify-content: space-between; margin-bottom: 12px; }
         .val-display { font-size: 1.4rem; font-weight: bold; }
         .btn-container { display: flex; gap: 15px; }
-        button.ctrl-btn {
-            flex: 1; padding: 15px; border: none; border-radius: 12px;
-            font-size: 1.1rem; font-weight: bold; cursor: pointer; color: white;
-        }
+        button.ctrl-btn { flex: 1; padding: 15px; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; color: white; font-family: inherit; }
         .btn-start { background-color: var(--state-run); }
         .btn-stop { background-color: var(--state-fault); }
         
-        /* Scheduler Layout Styles */
-        .sch-list { max-height: 400px; overflow-y: auto; padding-right: 5px; }
-        .sch-row {
-            background-color: var(--card-bg);
-            border-radius: 10px;
-            padding: 12px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .sch-info { font-size: 0.85rem; }
-        .time-inputs { display: flex; gap: 8px; align-items: center; margin-top: 5px; }
-        input[type="time"] {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            border: 1px solid var(--text-sub);
-            border-radius: 6px;
-            padding: 5px;
-            font-family: inherit;
-        }
-        .action-btns { display: flex; gap: 8px; }
-        .sch-btn {
-            padding: 6px 12px; border: none; border-radius: 6px;
-            font-size: 0.8rem; font-weight: bold; cursor: pointer; color: white;
-        }
-        .btn-save { background-color: var(--accent); }
+        /* Scheduler Styles */
+        .sch-list { max-height: 380px; overflow-y: auto; padding-right: 5px; }
+        .sch-row { background-color: var(--bg-color); border-radius: 10px; padding: 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #334155; }
+        .time-inputs { display: flex; gap: 6px; align-items: center; margin-top: 5px; }
+        input[type="time"] { background-color: var(--input-bg); color: var(--text-main); border: 1px solid var(--text-sub); border-radius: 6px; padding: 4px; font-family: inherit; }
+        .sch-actions { display: flex; gap: 6px; }
+        .sch-btn { padding: 6px 10px; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; color: white; font-family: inherit; }
+        .btn-save { background-color: var(--accent); color: #000; }
         .btn-del { background-color: var(--state-fault); }
     </style>
 </head>
 <body>
 
-<div class="app-container">
-    <div class="header">
-        <h2>MOTORSTARTER PRO</h2>
-        <small style="color: var(--text-sub);">Device ID: <span id="disp-mac">Connecting...</span></small>
+    <!-- 1. LOGIN VIEW SCREEN -->
+    <div id="view-login" class="login-card active-view">
+        <h2 style="color: var(--accent); margin-bottom: 5px;">BANTU TECH</h2>
+        <p style="color: var(--text-sub); font-size: 0.9rem; margin-top: 0; margin-bottom: 25px;">MotorStarter Control Console</p>
+        <div class="input-group">
+            <label>Customer Username</label>
+            <input type="text" id="login-user" placeholder="Enter username" value="admin">
+        </div>
+        <div class="input-group">
+            <label>Password</label>
+            <input type="password" id="login-pass" placeholder="Enter password" value="1234">
+        </div>
+        <button class="btn-prime" onclick="handleLogin()">SECURE LOGIN</button>
     </div>
 
-    <!-- Navigation Tabs -->
-    <div class="tab-bar">
-        <button class="tab-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button>
-        <button class="tab-btn" onclick="switchTab('scheduler')">🗓️ Scheduler</button>
-    </div>
-
-    <!-- PANEL 1: DASHBOARD VIEW -->
-    <div id="panel-dashboard" class="view-panel active">
-        <div id="status-banner" class="status-banner">⏹️ SYSTEM DISCONNECTED</div>
-        
-        <div class="grid-card">
-            <div class="card-title">⚡ 3-Phase Line Voltages</div>
-            <div class="metric-row"><span>R-Y Phase:</span><span class="val-display" id="v-ry">0 V</span></div>
-            <div class="metric-row"><span>Y-B Phase:</span><span class="val-display" id="v-yb">0 V</span></div>
-            <div class="metric-row"><span>B-R Phase:</span><span class="val-display" id="v-br">0 V</span></div>
+    <!-- 2. OVERALL FLEET MONITOR SCREEN -->
+    <div id="view-fleet" class="app-container">
+        <div class="header">
+            <h2>STARTERS MANAGEMENT</h2>
+            <p style="color: var(--text-sub); font-size: 0.85rem; margin: 0;">Operational Overview Fleet Control</p>
         </div>
-
-        <div class="grid-card">
-            <div class="card-title">📈 3-Phase Current Draw</div>
-            <div class="metric-row"><span>R Amps:</span><span class="val-display" id="a-r" style="color:var(--accent)">0.0 A</span></div>
-            <div class="metric-row"><span>Y Amps:</span><span class="val-display" id="a-y" style="color:var(--accent)">0.0 A</span></div>
-            <div class="metric-row"><span>B Amps:</span><span class="val-display" id="a-b" style="color:var(--accent)">0.0 A</span></div>
-        </div>
-
-        <div class="btn-container">
-            <button class="ctrl-btn btn-start" onclick="sendCommand('START')">START</button>
-            <button class="ctrl-btn btn-stop" onclick="sendCommand('STOP')">STOP</button>
-        </div>
-    </div>
-
-    <!-- PANEL 2: 20-SLOT SCHEDULER VIEW -->
-    <div id="panel-scheduler" class="view-panel">
-        <div class="grid-card" style="padding: 15px;">
-            <div class="card-title">⏰ Local 20-Slot Timing Matrix</div>
-            <div class="sch-list" id="scheduler-container">
-                <!-- 20 Rows are dynamically loaded here via JavaScript -->
+        <div class="grid-card" style="padding: 15px; margin-bottom: 15px;">
+            <div class="card-title" style="margin-bottom: 10px;">➕ Add New Production Starter</div>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="new-mac" placeholder="Enter ESP32 MAC ID (e.g. A1B2C3D4E5F6)">
+                <button class="btn-prime" style="margin-top:0; width:auto; padding: 0 20px;" onclick="addStarter()">ADD</button>
             </div>
         </div>
+        <div class="fleet-grid" id="fleet-container">
+            <!-- Dynamically populated fleet nodes -->
+        </div>
     </div>
-</div>
 
-<script>
-    // --- Enterprise Configuration Variables ---
-    const MAC_ADDRESS = "A1B2C3D4E5F6"; // Unique board identification tag
-    const BROKER_HOST = "563dc0aa9ec6d12c0420.s1.eu.hivemq.cloud";
-    const BROKER_PORT = 8884; // WebSockets Secure SSL port
-    const MQTT_USER = "motor_gateway";
-    const MQTT_PASS = "YourSecurePassword123";
+    <!-- 3. PARTICULAR STARTER OVERVIEW SCREEN -->
+    <div id="view-details" class="app-container">
+        <div class="header">
+            <button class="back-btn" onclick="showFleetView()">⬅ BACK</button>
+            <h2 id="details-title" style="margin-top: 30px; margin-bottom: 0;">STARTER PANEL</h2>
+            <small style="color: var(--text-sub);">MAC Address Link: <span id="details-mac">---</span></small>
+        </div>
 
-    document.getElementById('disp-mac').innerText = MAC_ADDRESS;
+        <div class="tab-bar">
+            <button id="btn-tab-dash" class="tab-btn active" onclick="switchSubPanel('dashboard')">📊 Parameter Live View</button>
+            <button id="btn-tab-sch" class="tab-btn" onclick="switchSubPanel('scheduler')">🗓️ Local Scheduler</button>
+        </div>
 
-    // Initialize Paho MQTT Browser Client Link
-    const client = new Paho.MQTT.Client("wss://" + BROKER_HOST + ":" + BROKER_PORT + "/mqtt", "WebApp_" + Math.random().toString(16).substr(2, 8));
+        <!-- Sub-panel A: Dashboard Readings -->
+        <div id="sub-dashboard" class="panel-view active">
+            <div id="status-banner" class="status-banner">⏹️ MONITOR OFFLINE</div>
+            <div class="grid-card">
+                <div class="card-title">⚡ 3-Phase Line Voltages</div>
+                <div class="metric-row"><span>R-Y Phase:</span><span class="val-display" id="v-ry">0 V</span></div>
+                <div class="metric-row"><span>Y-B Phase:</span><span class="val-display" id="v-yb">0 V</span></div>
+                <div class="metric-row"><span>B-R Phase:</span><span class="val-display" id="v-br">0 V</span></div>
+            </div>
+            <div class="grid-card">
+                <div class="card-title">📈 3-Phase Current Draw</div>
+                <div class="metric-row"><span>R Amps (RAMPS):</span><span class="val-display" id="a-r" style="color:var(--accent)">0.0 A</span></div>
+                <div class="metric-row"><span>Y Amps (YAMPS):</span><span class="val-display" id="a-y" style="color:var(--accent)">0.0 A</span></div>
+                <div class="metric-row"><span>B Amps (BAMPS):</span><span class="val-display" id="a-b" style="color:var(--accent)">0.0 A</span></div>
+            </div>
+            <div class="btn-container">
+                <button class="ctrl-btn btn-start" onclick="sendHardwareCommand('START')">START MOTOR</button>
+                <button class="ctrl-btn btn-stop" onclick="sendHardwareCommand('STOP')">STOP MOTOR</button>
+            </div>
+        </div>
 
-    client.onConnectionLost = (response) => {
-        updateBanner("⏹️ SYSTEM DISCONNECTED", "#64748b");
-        setTimeout(connectBroker, 5000);
-    };
-
-    client.onMessageArrived = (message) => {
-        const payload = message.payloadString;
-        const tags = payload.split(',');
-        
-        if (tags.length === 7) {
-            document.getElementById('v-ry').innerText = tags[0] + " V";
-            document.getElementById('v-yb').innerText = tags[1] + " V";
-            document.getElementById('v-br').innerText = tags[2] + " V";
-            document.getElementById('a-r').innerText = tags[3] + " A";
-            document.getElementById('a-y').innerText = tags[4] + " A";
-            document.getElementById('a-b').innerText = tags[5] + " A";
-
-            const statusInt = parseInt(tags[6]);
-            if (statusInt === 1) updateBanner("⚡ MOTOR RUNNING", "#10b981");
-            else if (statusInt === 0) updateBanner("⏹️ MOTOR STOPPED", "#475569");
-            else if (statusInt === 2) updateBanner("🚨 TRIP FAULT TRIGGERED", "#ef4444");
-        }
-    };
-
-    function connectBroker() {
-        client.connect({
-            onSuccess: () => {
-                client.subscribe(`devices/MOTOR_${MAC_ADDRESS}/telemetry`);
-                updateBanner("⏹️ READY (CONNECTED)", "#475569");
-            },
-            onFailure: () => { setTimeout(connectBroker, 5000); },
-            useSSL: true, userName: MQTT_USER, password: MQTT_PASS, keepAliveInterval: 30
-        });
-    }
-
-    function sendCommand(cmd) {
-        const message = new Paho.MQTT.Message(cmd);
-        message.destinationName = `devices/MOTOR_${MAC_ADDRESS}/control`;
-        message.qos = 1;
-        client.send(message);
-    }
-
-    // --- Dynamic UI Controls & Scheduler Generation ---
-    function switchTab(tabId) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
-        event.target.classList.add('active');
-        document.getElementById(`panel-${tabId}`).classList.add('active');
-    }
-
-    function updateBanner(text, color) {
-        const banner = document.getElementById('status-banner');
-        banner.innerText = text;
-        banner.style.backgroundColor = color;
-    }
-
-    // Render the 20 UI schedule slots dynamically inside the container list view
-    function buildSchedulerUI() {
-        const container = document.getElementById('scheduler-container');
-        container.innerHTML = "";
-        for (let i = 0; i < 20; i++) {
-            const slotNum = String(i + 1).padStart(2, '0');
-            const rowHTML = `
-                <div class="sch-row">
-                    <div class="sch-info">
-                        <strong>Slot ${slotNum}</strong>
-                        <div class="time-inputs">
-                            <label>ON:</label><input type="time" id="on-${i}">
-                            <label>OFF:</label><input type="time" id="off-${i}">
-                        </div>
+        <!-- Sub-panel B: 20-Slot Scheduler Matrix -->
+        <div id="sub-scheduler" class="panel-view">
+            <div class="grid-card">
+                <div class="card-title">⏰ ATmega3208 EEPROM Core Timers</div>
